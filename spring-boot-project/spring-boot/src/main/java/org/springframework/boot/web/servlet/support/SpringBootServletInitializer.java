@@ -107,20 +107,29 @@ public abstract class SpringBootServletInitializer implements WebApplicationInit
 
 	protected WebApplicationContext createRootApplicationContext(
 			ServletContext servletContext) {
+		//创建SpringApplicationBuilder实例,该类默认构造函数中初始化了SpringApplication
 		SpringApplicationBuilder builder = createSpringApplicationBuilder();
+		//把当前实现了SpringBootServletInitializer的的类设置成SpringApplication的main方法类
 		builder.main(getClass());
+		//判断当前web容器上下文中是否持有spring 容器
 		ApplicationContext parent = getExistingRootWebApplicationContext(servletContext);
 		if (parent != null) {
 			this.logger.info("Root context already created (using as parent).");
 			servletContext.setAttribute(
 					WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, null);
+			//如果存在父容器,继续在List<ApplicationContextInitializer<?>> initializers中加入ParentContextApplicationContextInitializer
 			builder.initializers(new ParentContextApplicationContextInitializer(parent));
 		}
+		//List<ApplicationContextInitializer<?>> initializers中加入ServletContextApplicationContextInitializer
 		builder.initializers(
 				new ServletContextApplicationContextInitializer(servletContext));
+		//设置spring web的容器实现类
 		builder.contextClass(AnnotationConfigServletWebServerApplicationContext.class);
+		//SpringBootServletInitializer的实现类必须重写configure方法,指定primarySources类
 		builder = configure(builder);
+		//List<ApplicationListener<?>> listeners中加入WebEnvironmentPropertySourceInitializer
 		builder.listeners(new WebEnvironmentPropertySourceInitializer(servletContext));
+		//以上操作都是为了构造SpringApplication实例
 		SpringApplication application = builder.build();
 		if (application.getAllSources().isEmpty() && AnnotationUtils
 				.findAnnotation(getClass(), Configuration.class) != null) {

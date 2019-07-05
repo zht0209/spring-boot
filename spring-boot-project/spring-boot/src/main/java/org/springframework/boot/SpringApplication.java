@@ -269,9 +269,12 @@ public class SpringApplication {
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
 		//判断应用的类型->WebApplicationType是个枚举类 REACTIVE(WebFlux) NONE(单机) SERVLET(WEB应用)
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		//从类路径下META-INF/spring.factories中读取ApplicationContextInitializer的实现类,并存储到成员变量List<ApplicationContextInitializer<?>> initializers中
 		setInitializers((Collection) getSpringFactoriesInstances(
 				ApplicationContextInitializer.class));
+		//同上,读取ApplicationListener的实现类并存储到List<ApplicationListener<?>> listeners中
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		//从堆栈调用链中获取main方法的启动类,如果是war包形式返回Null,jar形式的启动方式就会返回启动类的class对象
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -391,11 +394,15 @@ public class SpringApplication {
 	 */
 	public ConfigurableApplicationContext run(String... args) {
 		StopWatch stopWatch = new StopWatch();
+		//开始启动计时
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		//启用headless模式->java.awt.headless=true
 		configureHeadlessProperty();
+		//也是在META-INF/spring.factories中加载SpringApplicationRunListener的所有实现类
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		//所有的SpringApplicationRunListeners监听器执行ApplicationStartingEvent事件
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
@@ -403,7 +410,9 @@ public class SpringApplication {
 			ConfigurableEnvironment environment = prepareEnvironment(listeners,
 					applicationArguments);
 			configureIgnoreBeanInfo(environment);
+			//打印Banner,就是启动时控制台的springboot标识
 			Banner printedBanner = printBanner(environment);
+			//通过反射创建出spring 容器实例,web环境下是AnnotationConfigServletWebServerApplicationContext
 			context = createApplicationContext();
 			exceptionReporters = getSpringFactoriesInstances(
 					SpringBootExceptionReporter.class,
@@ -437,11 +446,15 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		//默认返回标准的StandardEnvironment web返回StandardServletEnvironment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		//发布环境变量准备的事件
 		listeners.environmentPrepared(environment);
+		//将环境绑定到SpringApplication
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
+			//这里将StandardServletEnvironment转成了StandardEnvironment
 			environment = new EnvironmentConverter(getClassLoader())
 					.convertEnvironmentIfNecessary(environment, deduceEnvironmentClass());
 		}
